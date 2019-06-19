@@ -1,4 +1,4 @@
-CustomerId,First Name,Last Name,Sex,Phone,Addressline1,city,state,postcode,Lat,Lon
+CustomerId,FirstName,LastName,Sex,Phone,Address,city,state,postcode,Lat,Lon
 12346,Enzo,Young,M,(808) 246-1599,3-3300 Kuhio Hwy, Lihue, HI,96766,-159.36503,21.9823371
 12347,Kamryn,Grant,F,(808) 688-0066,94-595 Kupuohi St, Waipahu, HI,96797,-158.0346296,21.3913893
 12348,Antwan,Walsh,M,(808) 623-6744,95-550 Lanikuhana Avenue, Mililani, HI,96789,-158.0055984,21.4499507
