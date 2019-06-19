@@ -1,15 +1,36 @@
 import functools
+from flask_cors import CORS, cross_origin
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
+from flask import jsonify
+from flask_jwt_extended import (create_access_token)
+from . import db
+from flask_bcrypt import Bcrypt
+from datetime import datetime, timedelta
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 
-from flask.db import get_db
+from collections import defaultdict
+import pandas as pd
+import quandl
+import random
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+data = pd.read_csv(BASE_DIR+'/CleanedData/Stock_table.csv')
+
+
+bp = Blueprint('allocation', __name__, url_prefix='/')
+
+trans = db.get_db().transactions
+tick = db.get_db().ticker
 
 @bp.route('/users/allocation', methods=['GET'])
 @jwt_required
 def transactions():
-    user = mongo.db.usersDB
+    user = db.get_db().users
     userid = request.get_json()['userId']
     transactionsinfo = user.find_one({'CustomerId': userid})
     return jsonify({'tranData': transactionsinfo})
@@ -27,7 +48,6 @@ def netReturn():
     # Gathring customer data regarding his transactions
     current_user = get_jwt_identity()
     customerId = current_user['CustomerId']
-    print(current_user)
     customerId=customerId
     tr = trans.find({'customer_id':customerId})
     stock_trans = list(); symbol_list = []; symbol_dict = {}
@@ -37,6 +57,7 @@ def netReturn():
         stock_trans.append([i['StockId'],i['closing_price'],datetime(d.year, d.month, 1),i['tran_amount']])
         symbol_list.append(tick.find_one({'serialNumber':i['StockId']})['symbol'])
         symbol_dict[i['StockId']] = tick.find_one({'serialNumber':i['StockId']})['symbol']
+
     symbol_list = list(dict.fromkeys(symbol_list))
     stock_trans.sort(key=lambda x:x[2])
     
@@ -60,8 +81,10 @@ def netReturn():
     
     # for any NaN avalue apply bFill method to fill it
     table.bfill(inplace=True)
+
     for i in symbol_list:
         table[i + '_Share'] = 0
+
     for i in stock_trans:
         table.loc[i[2],symbol_dict[i[0]]+'_Share'] += i[3]
 
@@ -74,24 +97,23 @@ def netReturn():
         LMV = 0
         for i in table.iterrows():
             d = i[1].to_dict()
-    # NUE: 60.513037   # NUE_Change: 0.102644   # NUE_Share: 20.000000   # NUE_Return: 0.000000
             table.loc[i[0], mv] = (d[sh]*d[st]) + (d[ch]*LMV) + LMV
             LMV = table.loc[i[0], mv]
-    netReturn = 0
-    stock_return = {}
-    pieSeries = []
-    current_stk_val = {}
-    print(table)
+
+    netReturn = 0; stock_return = {}; pieSeries = []; current_stk_val = {}
+
     for i in symbol_list:
         stock_return[i] = table[i + '_Return'].round(3).to_list()
         pieSeries.append({'symbol':i,'share':stock_return[i][9]})
         current_stk_val[i] = [stock_return[i][9],(table[i+'_Share']*table[i]).sum(),table[i+'_Share'].sum()]
         netReturn += stock_return[i][9]
+    
     print(current_stk_val)
     netReturn = round(netReturn, 3)
     l = table.index.strftime("%Y-%m-%d").tolist()
     return jsonify({'stock_return': stock_return, 'netReturn': netReturn, 'pieSeries':pieSeries})
     
+
 @bp.route('/users/suggestion', methods=['GET', 'POST'])
 @jwt_required
 def getSuggestions():
@@ -100,10 +122,10 @@ def getSuggestions():
     customerId = current_user['CustomerId']
     numOfStk = 5
 
-    catOfCust = db.risk_profile.find_one({'CustomerId':customerId})['Classification']
-    stockList = db.Ticker_Profile.find_one()[catOfCust]
+    catOfCust = db.get_db().risk_profile.find_one({'CustomerId':customerId})['Classification']
+    stockList = db.get_db().ticker_Profile.find_one()[catOfCust]
     
-    selected = [db.ticker.find_one({'serialNumber':x})['symbol'] for x in stockList]
+    selected = [db.get_db().ticker.find_one({'serialNumber':x})['symbol'] for x in stockList]
     selected1 = set(selected)
 
     # Randomly selecting required number of stock from given category of risk stock
@@ -129,10 +151,7 @@ def getSuggestions():
     cov_annual = cov_daily * 250
     
     # empty lists to store returns, volatility and weights of imginary portfolios
-    port_returns = []
-    port_volatility = []
-    stock_weights = []
-    sharpe_ratio = []
+    port_returns = []; port_volatility = []; stock_weights = []; sharpe_ratio = []
     
     # set the number of combinations for imaginary portfolios
     num_assets = len(selected)
@@ -194,6 +213,7 @@ def getSuggestions():
     del(SharpPo['Volatility']); del(SharpPo['Returns']); del(SharpPo['Sharpe Ratio'])
     
     return jsonify({'SharpPo':SharpPo,'minVaPo':minVaPo, 'SharpPoTicker':sharpe_1,'minVaPoTicker':minVaPo_1})
+
 
 @bp.route('/users/projected', methods=['GET','POST'])
 @jwt_required
