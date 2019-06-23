@@ -5,12 +5,19 @@
   
   ## To Install the application and Run it, You have to 
   1 first create an virtual environment
+  
   2 $ pip3 install virtualenv
+  
   3 $ virtualenv Venv
+  
   4 $ . Venv/bin/activate
+  
   5 $ pip3 install -r requirements.txt
+  
   6 $ export FLASK_APP=flaskr
+  
   7 $ export FLASK_ENV=development
+  
   8 $ flask run
   
   
