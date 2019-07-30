@@ -55,7 +55,7 @@ pyOpenSSL==19.0.0
 pyparsing==2.4.0
 pyramid-arima==0.9.0
 python-dateutil==2.8.0
-python-engineio==3.6.0
+python-engineio==3.8.2.post1
 python-socketio==4.0.3
 pytz==2019.1
 Quandl==3.4.8
