@@ -67,7 +67,7 @@ socketIO-client-nexus==0.7.6
 sseclient==0.0.24
 statsmodels==0.9.0
 traitlets==4.3.2
-urllib3==1.25.2
+urllib3==1.25.8
 wcwidth==0.1.7
 websocket-client==0.56.0
 Werkzeug==0.15.4
